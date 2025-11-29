@@ -4,3 +4,6 @@ pytest
 flake8
 httpx
 pydantic
+supabase
+python-dotenv
+
