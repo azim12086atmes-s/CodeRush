@@ -14,10 +14,12 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v3
 
+    # UPGRADE 1: Caching Added
     - name: Set up Python 3.11
       uses: actions/setup-python@v4
       with:
         python-version: "3.11"
+        cache: 'pip' # ### NEW ### This automatically caches your pip dependencies!
 
     - name: Install Dependencies
       run: |
@@ -28,6 +30,19 @@ jobs:
       run: |
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
 
+    # UPGRADE 2: Security Scan (Trivy)
+    - name: Security Scan (Trivy)
+      uses: aquasecurity/trivy-action@master # ### NEW ###
+      with:
+        scan-type: 'fs' # Scans the file system (your code)
+        scan-ref: '.'
+        exit-code: '1' # Fails the pipeline if vulnerabilities are found
+        severity: 'CRITICAL,HIGH'
+
+    # UPGRADE 3: Inject Secrets into Tests
     - name: Test with Pytest
+      env: # ### NEW ### This injects the keys from GitHub Secrets into this step
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
       run: |
         pytest
