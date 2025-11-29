@@ -1,38 +1,38 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import Optional, List
-import datetime
+from typing import List, Optional
+# Import our new database functions
+from db import add_note_to_db, get_all_notes
 
 app = FastAPI(title="Code Rush - Second Brain API")
 
-# --- DATA MODELS (The Shape of our Thoughts) ---
+# --- DATA MODELS ---
 class NoteInput(BaseModel):
     content: str
     media_type: str = "text" # text, audio, image
     tags: List[str] = []
 
-class Note(NoteInput):
+class Note(BaseModel):
     id: int
+    content: str
+    category: str
+    tags: Optional[List[str]] = None
     created_at: str
-
-# --- IN-MEMORY STORE (Temporary, until we add Supabase) ---
-fake_db = []
 
 @app.get("/")
 def read_root():
-    return {"status": "System Operational", "notes_count": len(fake_db)}
+    return {"status": "System Operational", "mode": "Database Connected"}
 
-@app.post("/notes/", response_model=Note)
+@app.post("/notes/")
 def create_note(note: NoteInput):
-    # This is where the AI logic will eventually go!
-    new_note = Note(
-        id=len(fake_db) + 1,
-        created_at=datetime.datetime.now().isoformat(),
-        **note.dict()
-    )
-    fake_db.append(new_note)
-    return new_note
+    # Save to Supabase
+    try:
+        new_note = add_note_to_db(note.content, note.tags, note.media_type)
+        return new_note
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/notes/")
 def get_notes():
-    return fake_db
+    # Fetch from Supabase
+    return get_all_notes()
